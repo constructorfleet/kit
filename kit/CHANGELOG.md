@@ -1,3 +1,9 @@
+## kit/v0.7.3
+
+
+
+**Full Changelog**: https://github.com/getarcaneapp/kit/compare/kit/v0.7.2...kit/v0.7.3
+
 ## kit/v0.7.2
 
 ### Bug fixes
