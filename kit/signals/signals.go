@@ -20,12 +20,13 @@ Also referenced from pocket-id/pocket-id
 
 const (
 	forcedShutdownTimeout = 30 * time.Second
+	repeatSignalWindow    = time.Second
 )
 
 var onlyOneSignalHandler = make(chan struct{})
 
 // SignalContext returns a context that is canceled when the application receives an interrupt signal.
-// A second signal or an expired graceful-shutdown deadline forces the process to exit.
+// A second signal more than a second after the first, or an expired graceful-shutdown deadline, forces the process to exit.
 func SignalContext(parentCtx context.Context) context.Context {
 	close(onlyOneSignalHandler) // Panics when called twice
 
@@ -35,17 +36,24 @@ func SignalContext(parentCtx context.Context) context.Context {
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigCh
+		firstSignalAt := time.Now()
 		slog.InfoContext(parentCtx, "Received interrupt signal. Shutting down…")
 		cancel()
 
 		shutdownTimer := time.NewTimer(forcedShutdownTimeout)
 		defer shutdownTimer.Stop()
 
-		select {
-		case <-sigCh:
-			slog.WarnContext(parentCtx, "Received a second interrupt signal. Forcing an immediate shutdown.")
-		case <-shutdownTimer.C:
-			slog.ErrorContext(parentCtx, "Graceful shutdown timed out. Forcing process exit.", "timeout", forcedShutdownTimeout)
+		for {
+			select {
+			case <-sigCh:
+				if time.Since(firstSignalAt) < repeatSignalWindow {
+					continue
+				}
+				slog.WarnContext(parentCtx, "Received a second interrupt signal. Forcing an immediate shutdown.")
+			case <-shutdownTimer.C:
+				slog.ErrorContext(parentCtx, "Graceful shutdown timed out. Forcing process exit.", "timeout", forcedShutdownTimeout)
+			}
+			break
 		}
 		// Go cannot safely terminate a hung goroutine. Exit the process instead of
 		// allowing Bootstrap to close dependencies that goroutine may still use.
