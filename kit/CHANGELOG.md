@@ -1,3 +1,13 @@
+## kit/v0.7.4
+
+### Bug fixes
+
+* ignore duplicate interrupt signals during shutdown([95ee679](https://github.com/getarcaneapp/kit/commit/95ee67962cbd8dd31babc06d7b543552a4f0fc62) by @kmendell)
+
+
+
+**Full Changelog**: https://github.com/getarcaneapp/kit/compare/kit/v0.7.3...kit/v0.7.4
+
 ## kit/v0.7.3
 
 
