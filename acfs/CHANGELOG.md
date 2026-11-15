@@ -1,3 +1,13 @@
+## acfs/v0.10.3
+
+### Bug fixes
+
+* tolerate chmod failures on filesystems that reject it([0635971](https://github.com/getarcaneapp/kit/commit/063597164f0db2ff9a976d48957964104d8a35ff) by @kmendell)
+
+
+
+**Full Changelog**: https://github.com/getarcaneapp/kit/compare/acfs/v0.10.2...acfs/v0.10.3
+
 ## acfs/v0.10.2
 
 ### New features
