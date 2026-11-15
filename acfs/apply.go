@@ -201,7 +201,7 @@ func applyFile(ctx context.Context, mutation *mutationRoot, stagingRoot *os.Root
 		return fmt.Errorf("%w: expected %d bytes, received %d: %w", ErrSizeMismatch, change.Size, written, err)
 	}
 	err = target.Chmod(applyFileMode)
-	if err != nil {
+	if err != nil && !errors.Is(err, fs.ErrPermission) && !errors.Is(err, errors.ErrUnsupported) {
 		return err
 	}
 	err = target.Sync()

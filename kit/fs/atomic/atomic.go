@@ -88,7 +88,7 @@ func WriteFile(name string, data []byte, perm os.FileMode) error {
 		return fmt.Errorf("failed to sync temp file %s: %w", tmp.Name(), err)
 	}
 	err = tmp.Chmod(perm)
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrPermission) && !errors.Is(err, errors.ErrUnsupported) {
 		cleanup()
 		return fmt.Errorf("failed to chmod temp file %s: %w", tmp.Name(), err)
 	}

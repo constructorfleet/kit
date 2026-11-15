@@ -246,9 +246,9 @@ func writeInPlace(ctx context.Context, files *dir, targetPath string, data []byt
 			return fmt.Errorf("write %q: %w", files.display(targetPath), err)
 		}
 	}
-	if !identical || opened.Mode()&chmodModeMask != mode {
+	if opened.Mode()&chmodModeMask != mode {
 		err = file.Chmod(mode)
-		if err != nil {
+		if err != nil && !errors.Is(err, fs.ErrPermission) && !errors.Is(err, errors.ErrUnsupported) {
 			return fmt.Errorf("chmod %q: %w", files.display(targetPath), err)
 		}
 	}
@@ -411,7 +411,7 @@ func writeFromRoot(ctx context.Context, files *dir, displayPath, targetName stri
 	}
 
 	err = temporaryFile.Chmod(options.Mode)
-	if err != nil {
+	if err != nil && !errors.Is(err, fs.ErrPermission) && !errors.Is(err, errors.ErrUnsupported) {
 		return written, fmt.Errorf("chmod temporary file: %w", err)
 	}
 	err = temporaryFile.Sync()
