@@ -180,7 +180,7 @@ func applyFile(ctx context.Context, mutation *mutationRoot, stagingRoot *os.Root
 	}()
 
 	if !create {
-		_, err = writeFromRoot(ctx, parent, change.Path, base, staged, WriteFromOptions{Size: change.Size, Mode: mode})
+		_, err = writeFromRoot(ctx, parent, change.Path, base, staged, WriteFromOptions{Size: change.Size, Mode: mode, PreserveOwnership: true})
 		return err
 	}
 

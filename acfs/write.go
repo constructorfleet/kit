@@ -38,6 +38,8 @@ type (
 		// Exclusive publishes the file only if the target does not exist, reporting
 		// ErrAlreadyExists otherwise.
 		Exclusive bool
+		// PreserveOwnership copies an existing regular file's Unix owner before publication.
+		PreserveOwnership bool
 	}
 
 	contextReader struct {
@@ -374,6 +376,23 @@ func createTemporaryFile(files *dir) (*os.File, string, error) {
 // staged file onto targetName, reporting ErrReplaced if either name is swapped.
 // With options.Exclusive an existing targetName is never replaced.
 func writeFromRoot(ctx context.Context, files *dir, displayPath, targetName string, source io.Reader, options WriteFromOptions) (int64, error) {
+	if options.Exclusive && options.PreserveOwnership {
+		return 0, fmt.Errorf("%w: Exclusive cannot be combined with PreserveOwnership", ErrInvalidWriteOptions)
+	}
+	var original os.FileInfo
+	if options.PreserveOwnership {
+		var err error
+		original, err = files.Lstat(targetName)
+		if err != nil {
+			return 0, fmt.Errorf("inspect original file: %w", err)
+		}
+		if original.Mode()&os.ModeSymlink != 0 {
+			return 0, ErrSymlink
+		}
+		if !original.Mode().IsRegular() {
+			return 0, ErrNotFile
+		}
+	}
 	if options.Exclusive {
 		_, err := files.Lstat(targetName)
 		if err == nil {
@@ -410,8 +429,13 @@ func writeFromRoot(ctx context.Context, files *dir, displayPath, targetName stri
 		return written, fmt.Errorf("check input size: %w", extraErr)
 	}
 
+	if original != nil {
+		if ownershipErr := preserveFileOwnership(temporaryFile, original); ownershipErr != nil {
+			return written, ownershipErr
+		}
+	}
 	err = temporaryFile.Chmod(options.Mode)
-	if err != nil && !errors.Is(err, fs.ErrPermission) && !errors.Is(err, errors.ErrUnsupported) {
+	if err != nil && (options.PreserveOwnership || (!errors.Is(err, fs.ErrPermission) && !errors.Is(err, errors.ErrUnsupported))) {
 		return written, fmt.Errorf("chmod temporary file: %w", err)
 	}
 	err = temporaryFile.Sync()

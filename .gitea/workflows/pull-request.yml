@@ -1,0 +1,54 @@
+name: Kit validation
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: kit-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  acfs:
+    name: ACFS tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOMAXPROCS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: acfs/go.mod
+          cache: true
+          cache-dependency-path: acfs/go.sum
+      - name: Test ACFS and its CLI on Linux
+        run: cd acfs && go test -p 2 -race -timeout 180s ./...
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOMAXPROCS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: acfs/go.mod
+          cache: true
+          cache-dependency-path: '**/go.sum'
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: 1.59.0
+          github-token: ''
+      - name: Install pinned Go linter
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+      - name: Check formatting and lint all modules
+        run: |
+          just format all --check
+          just lint

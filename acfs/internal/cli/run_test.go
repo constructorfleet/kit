@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -297,6 +298,9 @@ func TestVersion(t *testing.T) {
 	var response acfstypes.VersionResponse
 	if err := json.Unmarshal(stdout, &response); err != nil {
 		t.Fatal(err)
+	}
+	if !slices.Contains(response.Capabilities, acfstypes.CapabilityPreserveUpdateOwner) {
+		t.Fatalf("missing owner-preserving update capability: %#v", response)
 	}
 	if response.Version == "" || response.Protocol != acfstypes.ProtocolVersion {
 		t.Fatalf("unexpected version response: %#v", response)

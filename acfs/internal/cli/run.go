@@ -407,10 +407,11 @@ func runVersion(args []string, stdout io.Writer) error {
 		return errors.New("version does not accept positional arguments")
 	}
 	return encodeJSON(stdout, acfstypes.VersionResponse{
-		Version:   version.Version,
-		Revision:  version.Revision,
-		BuildTime: version.BuildTime,
-		Protocol:  acfstypes.ProtocolVersion,
+		Capabilities: []string{acfstypes.CapabilityPreserveUpdateOwner},
+		Version:      version.Version,
+		Revision:     version.Revision,
+		BuildTime:    version.BuildTime,
+		Protocol:     acfstypes.ProtocolVersion,
 	})
 }
 

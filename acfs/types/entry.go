@@ -87,14 +87,18 @@ type (
 
 	// VersionResponse describes an acfs build and its supported protocol.
 	VersionResponse struct {
-		Version   string `json:"version"`
-		Revision  string `json:"revision"`
-		BuildTime string `json:"buildTime"`
-		Protocol  int    `json:"protocol"`
+		Version      string   `json:"version"`
+		Revision     string   `json:"revision"`
+		BuildTime    string   `json:"buildTime"`
+		Capabilities []string `json:"capabilities,omitempty"`
+		Protocol     int      `json:"protocol"`
 	}
 )
 
 const (
+	// CapabilityPreserveUpdateOwner means apply update_file retains the original Unix UID/GID.
+	CapabilityPreserveUpdateOwner = "preserve-update-owner"
+
 	// ProtocolVersion is the current acfs wire protocol version.
 	ProtocolVersion = 2
 )

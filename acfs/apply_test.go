@@ -115,10 +115,20 @@ func TestApplyPreservesUpdateModeAndRejectsOverlappingRoots(t *testing.T) {
 	if err := os.WriteFile(destination, []byte("old"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(staging, "update"), []byte("new"), 0o600); err != nil {
+	if os.Geteuid() == 0 {
+		if err := os.Chown(destination, 501, 10); err != nil {
+			t.Fatal(err)
+		}
+	}
+	original, err := os.Stat(destination)
+	if err != nil {
 		t.Fatal(err)
 	}
-	_, err := Root{Path: root}.Apply(t.Context(), Root{Path: staging}, acfstypes.ApplyManifest{
+	originalUID, originalGID, _, originalInode := fileIdentity(original)
+	if err = os.WriteFile(filepath.Join(staging, "update"), []byte("new"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err = Root{Path: root}.Apply(t.Context(), Root{Path: staging}, acfstypes.ApplyManifest{
 		Version: acfstypes.ProtocolVersion,
 		Changes: []acfstypes.ApplyChange{{
 			Operation:  acfstypes.ApplyUpdateFile,
@@ -136,6 +146,14 @@ func TestApplyPreservesUpdateModeAndRejectsOverlappingRoots(t *testing.T) {
 	}
 	if info.Mode().Perm() != 0o750 {
 		t.Fatalf("updated mode = %o, want 750", info.Mode().Perm())
+	}
+
+	uid, gid, _, inode := fileIdentity(info)
+	if uid != originalUID || gid != originalGID {
+		t.Fatalf("updated owner = %d:%d, want %d:%d", uid, gid, originalUID, originalGID)
+	}
+	if originalInode != 0 && inode == originalInode {
+		t.Fatal("update rewrote the original inode instead of publishing an atomic replacement")
 	}
 
 	overlapping := filepath.Join(root, "staging")
